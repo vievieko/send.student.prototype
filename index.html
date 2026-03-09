@@ -1,0 +1,352 @@
+<html>
+<head>
+    <title>S.E.N.D - Student Box</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0f172a;
+            color: white;
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* LOADING SCREEN */
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+
+        #loadingScreen img {
+            width: 150px;
+            height: auto;
+            margin-bottom: 20px;
+            animation: spin 2s linear infinite;
+        }
+
+        #loadingScreen .brand-name {
+            font-family: 'Pacifico', cursive;
+            font-size: 48px;
+            color: #facc15; 
+            white-space: nowrap;
+            border-right: 3px solid #facc15;
+            overflow: hidden;
+            width: 0;
+            animation: typing 2s steps(6, end) forwards, blink 0.75s step-end infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 6ch; } 
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        /* MAIN BOX */
+        .box {
+            display: none; 
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            width: 700px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .school-logo {
+            width: 120px; 
+            height: auto;
+            margin-bottom: 10px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button {
+            padding: 10px 18px;
+            margin: 8px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .on { background-color: #22c55e; color: white; }
+        .off { background-color: #ef4444; color: white; }
+        .back { background-color: #64748b; color: white; }
+
+        input {
+            width: 60%;
+            padding: 8px;
+            margin: 6px;
+            border-radius: 5px;
+            border: none;
+        }
+
+        #device, #gradeSection, #formSection {
+            display: none;
+        }
+
+        canvas {
+            border-radius: 5px;
+            margin-top: 10px;
+            touch-action: none;
+            border: 2px solid #ccc;
+        }
+
+        #success {
+            color: #22c55e;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+    <img src="https://cdn.discordapp.com/attachments/1144682264920338572/1480380710123601920/Untitled705_20260209204219.png?ex=69af7779&is=69ae25f9&hm=c3dba3eff8ceb4adab6fba18850d9132e708dc4bc121e6b5b7ddf4bc8f4963ea&" alt="School Logo">
+    <div class="brand-name">praash</div>
+</div>
+
+<!-- MAIN S.E.N.D BOX -->
+<div class="box" id="mainBox">
+
+    <!-- School Logo -->
+    <img src="https://cdn.discordapp.com/attachments/1144682264920338572/1480380710123601920/Untitled705_20260209204219.png?ex=69af7779&is=69ae25f9&hm=c3dba3eff8ceb4adab6fba18850d9132e708dc4bc121e6b5b7ddf4bc8f4963ea&" alt="School Logo" class="school-logo">
+
+    <h1>S.E.N.D</h1>
+    <p>Submission Entry and Notation Device</p>
+
+
+    <button class="on" onclick="turnOn()">ON</button>
+    <button class="off" onclick="turnOff()">OFF</button>
+
+    <div id="device">
+
+        <div id="levelSection">
+            <h3>Select Level</h3>
+            <button onclick="showGrades('jhs')">Junior High School</button>
+            <button onclick="showGrades('shs')">Senior High School</button>
+        </div>
+
+        <div id="gradeSection"></div>
+
+        <div id="formSection">
+            <button class="back" onclick="goBackToGrades()">Back</button>
+
+            <p><strong>Grade:</strong> <span id="selectedGrade"></span></p>
+
+            <input type="text" id="name" placeholder="Name">
+            <input type="text" id="section" placeholder="Section">
+            <input type="text" id="teacher" placeholder="Teacher">
+            <input type="text" id="subject" placeholder="Subject">
+
+            <p><strong>Draw Signature Below:</strong></p>
+            <canvas id="signaturePad" width="400" height="180"></canvas>
+            <br>
+            <button type="button" onclick="clearSignature()">Clear Signature</button>
+
+            <br><br>
+            <button onclick="submitForm()">Submit Activity</button>
+
+            <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+            <p id="countdown"></p>
+            <p id="success"></p>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // LOADING SCREEN SCRIPT
+    window.addEventListener("load", () => {
+        setTimeout(() => {
+            document.getElementById("loadingScreen").style.display = "none";
+            document.getElementById("mainBox").style.display = "block";
+        }, 3000); // 3 seconds
+    });
+
+    
+    let currentGrade = "";
+    let canvas, ctx;
+    let drawing = false;
+
+    window.onload = function() {
+        canvas = document.getElementById("signaturePad");
+        ctx = canvas.getContext("2d");
+
+        fillWhiteBackground(); 
+
+        canvas.addEventListener("mousedown", startDraw);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mouseup", stopDraw);
+        canvas.addEventListener("mouseout", stopDraw);
+
+        canvas.addEventListener("touchstart", startDraw);
+        canvas.addEventListener("touchmove", draw);
+        canvas.addEventListener("touchend", stopDraw);
+    };
+
+    function fillWhiteBackground() {
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function clearSignature() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        fillWhiteBackground(); 
+    }
+
+    function turnOn() { document.getElementById("device").style.display = "block"; }
+    function turnOff() { document.getElementById("device").style.display = "none"; resetAll(); }
+    function resetAll() {
+        document.getElementById("levelSection").style.display = "block";
+        document.getElementById("gradeSection").style.display = "none";
+        document.getElementById("formSection").style.display = "none";
+    }
+
+    function showGrades(level) {
+        document.getElementById("levelSection").style.display = "none";
+        let gradeDiv = document.getElementById("gradeSection");
+        gradeDiv.innerHTML = "";
+        gradeDiv.style.display = "block";
+
+        let backBtn = document.createElement("button");
+        backBtn.innerText = "Back";
+        backBtn.className = "back";
+        backBtn.onclick = function() {
+            gradeDiv.style.display = "none";
+            document.getElementById("levelSection").style.display = "block";
+        };
+        gradeDiv.appendChild(backBtn);
+
+        let grades = level === "jhs" ? [7,8,9,10] : [11,12];
+        grades.forEach(g => {
+            let btn = document.createElement("button");
+            btn.innerText = "Grade " + g;
+            btn.onclick = function() { selectGrade(g); };
+            gradeDiv.appendChild(btn);
+        });
+    }
+
+    function selectGrade(grade) {
+        currentGrade = grade;
+        document.getElementById("gradeSection").style.display = "none";
+        document.getElementById("formSection").style.display = "block";
+        document.getElementById("selectedGrade").innerText = grade;
+    }
+
+    function goBackToGrades() {
+        document.getElementById("formSection").style.display = "none";
+        document.getElementById("gradeSection").style.display = "block";
+        clearSignature();
+    }
+
+    function startDraw(e) {
+        drawing = true;
+        draw(e);
+    }
+
+    function stopDraw() {
+        drawing = false;
+        ctx.beginPath();
+    }
+
+    function draw(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        let rect = canvas.getBoundingClientRect();
+        let x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        let y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "black";
+
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+
+    function isCanvasEmpty() {
+        let blank = document.createElement("canvas");
+        blank.width = canvas.width;
+        blank.height = canvas.height;
+        let blankCtx = blank.getContext("2d");
+        blankCtx.fillStyle = "white";
+        blankCtx.fillRect(0, 0, blank.width, blank.height);
+
+        return canvas.toDataURL() === blank.toDataURL();
+    }
+
+    function submitForm() {
+        let name = document.getElementById("name").value;
+        let section = document.getElementById("section").value;
+        let teacher = document.getElementById("teacher").value;
+        let subject = document.getElementById("subject").value;
+
+        if (!name || !section || !teacher || !subject) {
+            alert("Please fill out all fields.");
+            return;
+        }
+
+        if (isCanvasEmpty()) {
+            alert("Please provide a signature.");
+            return;
+        }
+
+        let timestamp = new Date().toLocaleString();
+        document.getElementById("timestamp").innerText = timestamp;
+
+        let submissions = JSON.parse(localStorage.getItem("sendSubmissions")) || [];
+        submissions.push({
+            grade: currentGrade,
+            name, section, teacher, subject,
+            signature: canvas.toDataURL(),
+            timestamp
+        });
+        localStorage.setItem("sendSubmissions", JSON.stringify(submissions));
+
+        startCountdown();
+    }
+
+    function startCountdown() {
+        let count = 5;
+        let countdownDiv = document.getElementById("countdown");
+        let successDiv = document.getElementById("success");
+
+        let interval = setInterval(function() {
+            countdownDiv.innerText = "Closing in... " + count;
+            count--;
+
+            if (count < 0) {
+                clearInterval(interval);
+                countdownDiv.innerText = "";
+                successDiv.innerText = "Submission Successful!";
+                clearSignature();
+            }
+        }, 1000);
+    }
+</script>
+
+</body>
+                                                                         </html>
